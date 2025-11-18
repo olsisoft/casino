@@ -1,0 +1,217 @@
+version: '3.8'
+
+services:
+  # Prometheus - Metrics Collection
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    container_name: casino-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/alerts:/etc/prometheus/alerts
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  # Grafana - Metrics Visualization
+  grafana:
+    image: grafana/grafana:10.0.0
+    container_name: casino-grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources
+      - grafana-data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+      - GF_USERS_ALLOW_SIGN_UP=false
+    networks:
+      - monitoring
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+  # Alertmanager - Alert Management
+  alertmanager:
+    image: prom/alertmanager:v0.26.0
+    container_name: casino-alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./prometheus/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - alertmanager-data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  # Elasticsearch - Log Storage
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.8.0
+    container_name: casino-elasticsearch
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms2g -Xmx2g"
+      - xpack.security.enabled=false
+      - xpack.security.http.ssl.enabled=false
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    networks:
+      - monitoring
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Logstash - Log Processing
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.8.0
+    container_name: casino-logstash
+    ports:
+      - "5000:5000/tcp"
+      - "5000:5000/udp"
+      - "5044:5044"
+      - "9600:9600"
+    volumes:
+      - ./elk/logstash/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+      - ./elk/logstash/patterns:/usr/share/logstash/patterns
+    environment:
+      - "LS_JAVA_OPTS=-Xms1g -Xmx1g"
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    networks:
+      - monitoring
+    depends_on:
+      - elasticsearch
+    restart: unless-stopped
+
+  # Kibana - Log Visualization
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.8.0
+    container_name: casino-kibana
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - ELASTICSEARCH_USERNAME=elastic
+      - ELASTICSEARCH_PASSWORD=changeme
+    volumes:
+      - ./elk/kibana/dashboards:/usr/share/kibana/data/dashboards
+    networks:
+      - monitoring
+    depends_on:
+      - elasticsearch
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5601/api/status || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Jaeger - Distributed Tracing
+  jaeger:
+    image: jaegertracing/all-in-one:1.47
+    container_name: casino-jaeger
+    ports:
+      - "5775:5775/udp"
+      - "6831:6831/udp"
+      - "6832:6832/udp"
+      - "5778:5778"
+      - "16686:16686"
+      - "14268:14268"
+      - "14250:14250"
+      - "9411:9411"
+    environment:
+      - COLLECTOR_ZIPKIN_HOST_PORT=:9411
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  # Node Exporter - System Metrics
+  node-exporter:
+    image: prom/node-exporter:v1.6.0
+    container_name: casino-node-exporter
+    ports:
+      - "9100:9100"
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  # cAdvisor - Container Metrics
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.47.0
+    container_name: casino-cadvisor
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  # PostgreSQL Exporter
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.13.0
+    container_name: casino-postgres-exporter
+    ports:
+      - "9187:9187"
+    environment:
+      - DATA_SOURCE_NAME=postgresql://postgres:postgres@postgres:5432/casino?sslmode=disable
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  # Redis Exporter
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.52.0
+    container_name: casino-redis-exporter
+    ports:
+      - "9121:9121"
+    environment:
+      - REDIS_ADDR=redis://redis:6379
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+volumes:
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+  alertmanager-data:
+    driver: local
+  elasticsearch-data:
+    driver: local
+
+networks:
+  monitoring:
+    driver: bridge

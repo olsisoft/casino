@@ -1,0 +1,125 @@
+{
+  "dashboard": {
+    "title": "Casino Platform - Service Overview",
+    "tags": ["casino", "overview", "microservices"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Service Health",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "up{job=~\".*-service\"}"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Request Rate (req/s)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(http_server_requests_seconds_count[5m])) by (job)",
+            "legendFormat": "{{job}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4}
+      },
+      {
+        "id": 3,
+        "title": "Error Rate (%)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[5m])) by (job) / sum(rate(http_server_requests_seconds_count[5m])) by (job) * 100",
+            "legendFormat": "{{job}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4}
+      },
+      {
+        "id": 4,
+        "title": "Response Time (p95)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[5m])) by (job, le))",
+            "legendFormat": "{{job}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12}
+      },
+      {
+        "id": 5,
+        "title": "CPU Usage (%)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "process_cpu_usage{job=~\".*-service\"} * 100",
+            "legendFormat": "{{job}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12}
+      },
+      {
+        "id": 6,
+        "title": "Memory Usage (MB)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "jvm_memory_used_bytes{job=~\".*-service\"} / 1024 / 1024",
+            "legendFormat": "{{job}} - {{area}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20}
+      },
+      {
+        "id": 7,
+        "title": "Active Threads",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "jvm_threads_live_threads{job=~\".*-service\"}",
+            "legendFormat": "{{job}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20}
+      },
+      {
+        "id": 8,
+        "title": "Database Connections",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "hikaricp_connections_active{job=~\".*-service\"}",
+            "legendFormat": "{{job}} - active"
+          },
+          {
+            "expr": "hikaricp_connections_idle{job=~\".*-service\"}",
+            "legendFormat": "{{job}} - idle"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 28}
+      },
+      {
+        "id": 9,
+        "title": "GC Pause Time",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(jvm_gc_pause_seconds_sum{job=~\".*-service\"}[5m])",
+            "legendFormat": "{{job}} - {{action}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 28}
+      }
+    ],
+    "refresh": "10s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    }
+  }
+}

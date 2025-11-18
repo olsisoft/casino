@@ -1,0 +1,178 @@
+{
+  "dashboard": {
+    "title": "Casino Platform - Business Metrics",
+    "tags": ["casino", "business", "revenue"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Games Played (per minute)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(game_plays_total[5m])) by (game_type) * 60",
+            "legendFormat": "{{game_type}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Win Rate (%)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(game_results_total{result=\"win\"}[5m])) by (game_type) / sum(rate(game_results_total[5m])) by (game_type) * 100",
+            "legendFormat": "{{game_type}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Total Bets (last hour)",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(increase(game_bet_amount_sum[1h]))"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 8}
+      },
+      {
+        "id": 4,
+        "title": "Total Payouts (last hour)",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(increase(game_payout_amount_sum[1h]))"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 8}
+      },
+      {
+        "id": 5,
+        "title": "House Profit (last hour)",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(increase(game_bet_amount_sum[1h])) - sum(increase(game_payout_amount_sum[1h]))"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 8}
+      },
+      {
+        "id": 6,
+        "title": "Active Players",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(game_active_players)"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 8}
+      },
+      {
+        "id": 7,
+        "title": "Payment Volume",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(payment_transaction_amount_sum{type=\"deposit\"}[5m])) by (provider)",
+            "legendFormat": "{{provider}} - deposits"
+          },
+          {
+            "expr": "sum(rate(payment_transaction_amount_sum{type=\"withdrawal\"}[5m])) by (provider)",
+            "legendFormat": "{{provider}} - withdrawals"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12}
+      },
+      {
+        "id": 8,
+        "title": "Payment Success Rate (%)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(payment_transactions_total{status=\"success\"}[5m])) by (provider) / sum(rate(payment_transactions_total[5m])) by (provider) * 100",
+            "legendFormat": "{{provider}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12}
+      },
+      {
+        "id": 9,
+        "title": "Jackpot Wins",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(increase(game_jackpot_wins_total[24h]))"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 20}
+      },
+      {
+        "id": 10,
+        "title": "Big Wins (10x+)",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(increase(game_big_wins_total[24h]))"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 20}
+      },
+      {
+        "id": 11,
+        "title": "Failed Logins (last hour)",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(increase(auth_login_attempts_total{result=\"failed\"}[1h]))"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 20}
+      },
+      {
+        "id": 12,
+        "title": "High Risk AML Transactions",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(increase(aml_high_risk_transactions_total[1h]))"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 20}
+      },
+      {
+        "id": 13,
+        "title": "Tournament Participation",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(tournament_registrations_total) by (tournament_id)",
+            "legendFormat": "{{tournament_id}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24}
+      },
+      {
+        "id": 14,
+        "title": "Chat Messages (per minute)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(chat_messages_total[5m])) * 60",
+            "legendFormat": "Messages"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24}
+      }
+    ],
+    "refresh": "30s",
+    "time": {
+      "from": "now-6h",
+      "to": "now"
+    }
+  }
+}

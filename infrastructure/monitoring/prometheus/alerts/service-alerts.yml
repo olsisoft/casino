@@ -1,0 +1,151 @@
+# Service Health Alerts
+
+groups:
+  - name: service_health
+    interval: 30s
+    rules:
+      # Service Down
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "{{ $labels.job }} on {{ $labels.instance }} has been down for more than 1 minute."
+
+      # High Error Rate
+      - alert: HighErrorRate
+        expr: rate(http_server_requests_seconds_count{status=~"5.."}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate on {{ $labels.job }}"
+          description: "{{ $labels.job }} has error rate above 5% (current: {{ $value }})"
+
+      # High Response Time
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_server_requests_seconds_bucket[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High response time on {{ $labels.job }}"
+          description: "95th percentile response time is above 1s (current: {{ $value }}s)"
+
+      # High CPU Usage
+      - alert: HighCPUUsage
+        expr: process_cpu_usage > 0.8
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on {{ $labels.job }}"
+          description: "CPU usage is above 80% for 10 minutes (current: {{ $value }})"
+
+      # High Memory Usage
+      - alert: HighMemoryUsage
+        expr: jvm_memory_used_bytes / jvm_memory_max_bytes > 0.9
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on {{ $labels.job }}"
+          description: "Memory usage is above 90% (current: {{ $value }})"
+
+      # Database Connection Pool Exhausted
+      - alert: DatabaseConnectionPoolExhausted
+        expr: hikaricp_connections_active / hikaricp_connections_max > 0.9
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Database connection pool almost exhausted on {{ $labels.job }}"
+          description: "Connection pool usage above 90% (current: {{ $value }})"
+
+  - name: business_metrics
+    interval: 1m
+    rules:
+      # High Failed Login Rate
+      - alert: HighFailedLoginRate
+        expr: rate(auth_login_attempts_total{result="failed"}[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High failed login rate"
+          description: "More than 10 failed logins per second for 5 minutes"
+
+      # Payment Processing Failures
+      - alert: PaymentProcessingFailures
+        expr: rate(payment_transactions_total{status="failed"}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High payment failure rate"
+          description: "Payment failure rate above 10% (current: {{ $value }})"
+
+      # Game RNG Failures
+      - alert: GameRNGFailures
+        expr: rate(game_rng_generation_failures_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Game RNG failures detected"
+          description: "RNG generation failures detected - immediate investigation required"
+
+      # AML High Risk Transactions
+      - alert: HighRiskTransactionsSpike
+        expr: rate(aml_high_risk_transactions_total[5m]) > 5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Spike in high-risk AML transactions"
+          description: "More than 5 high-risk transactions per second detected"
+
+  - name: infrastructure
+    interval: 30s
+    rules:
+      # Disk Space Low
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) < 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Disk space low on {{ $labels.instance }}"
+          description: "Less than 10% disk space available (current: {{ $value }})"
+
+      # PostgreSQL Down
+      - alert: PostgreSQLDown
+        expr: pg_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL is down"
+          description: "PostgreSQL database has been down for more than 1 minute"
+
+      # Redis Down
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis is down"
+          description: "Redis cache has been down for more than 1 minute"
+
+      # High Database Connections
+      - alert: HighDatabaseConnections
+        expr: pg_stat_database_numbackends > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High number of database connections"
+          description: "More than 80 active connections to PostgreSQL"

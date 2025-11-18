@@ -3,7 +3,11 @@
     "allow": [
       "Bash(mkdir:*)",
       "Bash(tree:*)",
-      "Bash(git init:*)"
+      "Bash(git init:*)",
+      "Bash(git commit --amend -m \"$(cat <<''EOF''\nPhase 2 Implementation: Games, Bonuses & Chat System\n\nComplete implementation of major Phase 2 features:\n\n## Games Implementation (7 games)\n- Blackjack: Full card game with hit/stand/double/split\n- Roulette: European & American variants with all bet types  \n- Video Poker: Jacks or Better with hand evaluation\n- Dice: Over/under betting with dynamic multipliers\n- Mines: 5x5 grid strategy game with progressive payouts\n- Crash: Multiplier game with auto-cashout\n- Coin Flip: Simple 50/50 game\n\nAll games feature:\n- Provably fair RNG (HMAC-SHA256)\n- Complete game engines & controllers\n- 30+ API endpoints\n- Proper house edge implementation\n\n## Bonus System (4 components)\n- Welcome Bonus: 100% match up to $500, 30x wagering\n- Daily Rewards: 8-tier streak system ($1-$50)\n- Cashback: Daily (5%), Weekly (10%), Monthly (15%)\n- Promo Codes: Full campaign management with usage limits\n\nFeatures:\n- 29 API endpoints\n- Automated expiry & calculation\n- Flexible wagering requirements\n- Admin management interface\n\n## Chat System\n- WebSocket real-time messaging (STOMP)\n- Multiple room types (Global, Game, VIP, Private)\n- Full moderation (Mute, Ban, Message deletion)\n- Slow mode & participant management\n- 12 API endpoints\nEOF\n)\")",
+      "Bash(git remote add:*)",
+      "Bash(git push:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,0 +1,248 @@
+version: '3.8'
+
+services:
+  # PostgreSQL for all services
+  postgres:
+    image: postgres:15-alpine
+    container_name: casino-postgres
+    environment:
+      POSTGRES_USER: casino_user
+      POSTGRES_PASSWORD: casino_pass_2024
+      POSTGRES_MULTIPLE_DATABASES: auth_db,user_db,game_db,payment_db,tournament_db,notification_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/create-multiple-databases.sh:/docker-entrypoint-initdb.d/create-databases.sh
+    networks:
+      - casino-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U casino_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching and sessions
+  redis:
+    image: redis:7-alpine
+    container_name: casino-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - casino-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Eureka Service Discovery
+  service-discovery:
+    build:
+      context: ./infrastructure/service-discovery
+      dockerfile: Dockerfile
+    container_name: casino-service-discovery
+    ports:
+      - "8761:8761"
+    networks:
+      - casino-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Auth Service
+  auth-service:
+    build:
+      context: ./services/auth-service
+      dockerfile: Dockerfile
+    container_name: casino-auth-service
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: auth_db
+      DB_USERNAME: casino_user
+      DB_PASSWORD: casino_pass_2024
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      EUREKA_URL: http://service-discovery:8761/eureka/
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production-min-256-bits
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      service-discovery:
+        condition: service_healthy
+    networks:
+      - casino-network
+
+  # User Service
+  user-service:
+    build:
+      context: ./services/user-service
+      dockerfile: Dockerfile
+    container_name: casino-user-service
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: user_db
+      DB_USERNAME: casino_user
+      DB_PASSWORD: casino_pass_2024
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      EUREKA_URL: http://service-discovery:8761/eureka/
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      service-discovery:
+        condition: service_healthy
+    networks:
+      - casino-network
+
+  # Game Service
+  game-service:
+    build:
+      context: ./services/game-service
+      dockerfile: Dockerfile
+    container_name: casino-game-service
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: game_db
+      DB_USERNAME: casino_user
+      DB_PASSWORD: casino_pass_2024
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      EUREKA_URL: http://service-discovery:8761/eureka/
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      service-discovery:
+        condition: service_healthy
+    networks:
+      - casino-network
+
+  # Payment Service
+  payment-service:
+    build:
+      context: ./services/payment-service
+      dockerfile: Dockerfile
+    container_name: casino-payment-service
+    ports:
+      - "8084:8084"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: payment_db
+      DB_USERNAME: casino_user
+      DB_PASSWORD: casino_pass_2024
+      EUREKA_URL: http://service-discovery:8761/eureka/
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      service-discovery:
+        condition: service_healthy
+    networks:
+      - casino-network
+
+  # Tournament Service
+  tournament-service:
+    build:
+      context: ./services/tournament-service
+      dockerfile: Dockerfile
+    container_name: casino-tournament-service
+    ports:
+      - "8085:8085"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: tournament_db
+      DB_USERNAME: casino_user
+      DB_PASSWORD: casino_pass_2024
+      EUREKA_URL: http://service-discovery:8761/eureka/
+    depends_on:
+      postgres:
+        condition: service_healthy
+      service-discovery:
+        condition: service_healthy
+    networks:
+      - casino-network
+
+  # Notification Service
+  notification-service:
+    build:
+      context: ./services/notification-service
+      dockerfile: Dockerfile
+    container_name: casino-notification-service
+    ports:
+      - "8086:8086"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: notification_db
+      DB_USERNAME: casino_user
+      DB_PASSWORD: casino_pass_2024
+      EUREKA_URL: http://service-discovery:8761/eureka/
+    depends_on:
+      postgres:
+        condition: service_healthy
+      service-discovery:
+        condition: service_healthy
+    networks:
+      - casino-network
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./infrastructure/api-gateway
+      dockerfile: Dockerfile
+    container_name: casino-api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      EUREKA_URL: http://service-discovery:8761/eureka/
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production-min-256-bits
+    depends_on:
+      - service-discovery
+      - auth-service
+      - user-service
+      - game-service
+      - payment-service
+      - tournament-service
+      - notification-service
+    networks:
+      - casino-network
+
+networks:
+  casino-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:

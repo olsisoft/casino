@@ -1,0 +1,57 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Environment variables
+.env
+.env.local
+.env.development
+.env.production
+*.env
+
+# Build outputs
+dist/
+build/
+*.js.map
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Mobile specific
+mobile-app/ios/Pods/
+mobile-app/ios/build/
+mobile-app/android/.gradle/
+mobile-app/android/app/build/
+mobile-app/android/build/
+*.apk
+*.ipa
+
+# React Native
+mobile-app/.bundle/
+mobile-app/metro.config.js.bak
+
+# Testing
+coverage/
+*.coverage
+.nyc_output
+
+# Misc
+*.pem
+.cache/
+temp/
+tmp/

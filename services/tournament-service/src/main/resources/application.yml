@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: tournament-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/tournament_db
+    username: casino_user
+    password: casino_pass
+  jpa:
+    hibernate:
+      ddl-auto: update
+
+server:
+  port: 8085
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
